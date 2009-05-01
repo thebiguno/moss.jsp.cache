@@ -3,8 +3,9 @@
  */
 package org.homeunix.thecave.moss.jsp.cache;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 
 import javax.servlet.Filter;
@@ -17,13 +18,20 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 public class CacheFilter implements Filter {
-	private FilterConfig filterConfig; 
+	
+	private Map<String, byte[]> cache = null;
 	
 	public void init(FilterConfig config) throws ServletException {
-		this.filterConfig = config;
+		String cachePath = config.getInitParameter("cache-path");
+		if (cachePath == null)
+			cachePath = System.getProperty("java.io.tmpdir");
+		File cacheDir = new File(cachePath);
+		if (!cacheDir.exists()){
+			throw new RuntimeException("Cache directory does not exist!");
+		}
+		
+		cache = Collections.synchronizedMap(new PersistentCache(cacheDir));
 	}
-	
-	private final static Map<String, byte[]> cache = new HashMap<String, byte[]>();
 	
 	public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {		
 		String uri = ((HttpServletRequest) req).getRequestURI();
@@ -32,16 +40,12 @@ public class CacheFilter implements Filter {
 			return;
 		}
 		
-		ByteServletResponseWrapper responseWrapper = new ByteServletResponseWrapper((HttpServletResponse) res);
-		
+		CachingServletResponseWrapper responseWrapper = new CachingServletResponseWrapper((HttpServletResponse) res);		
 		chain.doFilter(req, responseWrapper);
-		
-		byte[] data = responseWrapper.getResponseBytes();
-		cache.put(uri, data);
-		res.getOutputStream().write(data);
+		cache.put(uri, responseWrapper.getData());
 	}
 	
 	public void destroy() {
-		filterConfig = null;
+		cache = null;
 	}
 }
