@@ -24,17 +24,23 @@ public class CacheFilter implements Filter {
 	public void init(FilterConfig config) throws ServletException {
 		String cachePath = config.getInitParameter("cache-path");
 		if (cachePath == null)
-			cachePath = System.getProperty("java.io.tmpdir");
+			cachePath = System.getProperty("java.io.tmpdir") + "/" + CacheFilter.class.getName();
 		File cacheDir = new File(cachePath);
 		if (!cacheDir.exists()){
-			throw new RuntimeException("Cache directory does not exist!");
+			cacheDir.mkdirs();
 		}
 		
 		cache = Collections.synchronizedMap(new PersistentCache(cacheDir));
 	}
 	
-	public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {		
-		String uri = ((HttpServletRequest) req).getRequestURI();
+	public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
+		//Verify that this is an HttpServletRequest, and ignore those which are not.
+		if (!(req instanceof HttpServletRequest)){
+			chain.doFilter(req, res);
+			return;
+		}
+			
+		String uri = ((HttpServletRequest) req).getRequestURL().toString();
 		if (cache.get(uri) != null){
 			res.getOutputStream().write(cache.get(uri));
 			return;
