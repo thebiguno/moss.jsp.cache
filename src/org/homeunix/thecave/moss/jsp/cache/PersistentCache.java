@@ -9,7 +9,7 @@ import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.net.io.Util;
+import org.homeunix.thecave.moss.common.StreamUtil;
 
 /**
  * A persistent cache, backed by both memory and disk.  We use a weak hash map to 
@@ -51,7 +51,7 @@ public class PersistentCache extends WeakHashMap<String, byte[]>{
 		try {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			FileInputStream fis = new FileInputStream(fileCache);
-			Util.copyStream(fis, baos);
+			StreamUtil.copyStream(fis, baos);
 			return baos.toByteArray();
 		}
 		catch (IOException ioe){			
