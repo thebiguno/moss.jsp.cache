@@ -30,7 +30,12 @@ public class CacheFilter implements Filter {
 			cacheDir.mkdirs();
 		}
 		
-		cache = Collections.synchronizedMap(new PersistentCache(cacheDir));
+		String cacheExpiryString = config.getInitParameter("cache-expiry");
+		if (cacheExpiryString == null || cacheExpiryString.length() == 0)
+			cacheExpiryString = "0";
+		long cacheExpirySeconds = Long.parseLong(cacheExpiryString);
+		
+		cache = Collections.synchronizedMap(new PersistentCache(cacheDir, cacheExpirySeconds));
 	}
 	
 	public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {

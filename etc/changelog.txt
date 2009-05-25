@@ -1,3 +1,6 @@
+1.0.2.0 - May 25 2009
+-Added init-param 'cache-expiry' which allows you to set how long to store the cached item before invalidating it.  This value is in seconds.  After the time has been exceeded, the next request to the object will force a non-cached version.
+
 1.0.1.0 - May 22 2009
 -Converted to use Moss Common StreamUtil to remove dependency on Apache Commons Net
 

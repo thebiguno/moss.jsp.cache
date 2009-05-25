@@ -14,8 +14,8 @@
 		<filter-name>CacheFilter</filter-name>
 		<filter-class>org.homeunix.thecave.moss.jsp.cache.CacheFilter</filter-class>
 		<init-param>
-			<param-name>cache-path</param-name>
-			<param-value>/path/to/cache/folder</param-value>
+			<param-name>cache-expiry</param-name>
+			<param-value>0</param-value>
 		</init-param>
 	</filter>
 

@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,15 +23,19 @@ import org.homeunix.thecave.moss.common.StreamUtil;
  */
 public class PersistentCache extends WeakHashMap<String, byte[]>{
 	private final Logger logger = Logger.getLogger(PersistentCache.class.toString());
+	private final Map<String, Long> lastCacheRefresh; //Only affects in-memory cache
+	private final long cacheExpiryMillis; //How long until cache is invalidated. 0 means cache is stored indefinitely.
 
 	private final File cacheDir;
-	public PersistentCache(File cacheDir) {
+	public PersistentCache(File cacheDir, long cacheExpirySeconds) {
 		this.cacheDir = cacheDir;
+		lastCacheRefresh = new HashMap<String, Long>();
+		this.cacheExpiryMillis = cacheExpirySeconds * 1000;
 	}
 	
 	@Override
 	public byte[] get(Object key) {
-		if (super.get(key) != null)
+		if (super.get(key) != null && (cacheExpiryMillis == 0 || (lastCacheRefresh.get(key) != null && lastCacheRefresh.get(key) + cacheExpiryMillis > System.currentTimeMillis())))
 			return super.get(key);
 		return getFromPersistentCache(key);
 	}
@@ -40,6 +46,7 @@ public class PersistentCache extends WeakHashMap<String, byte[]>{
 			value = null;
 		
 		super.put(key, value);
+		lastCacheRefresh.put(key, System.currentTimeMillis());
 		putInPersistentCache(key, value);
 		return null;
 	}
@@ -47,6 +54,8 @@ public class PersistentCache extends WeakHashMap<String, byte[]>{
 	private byte[] getFromPersistentCache(Object key){
 		File fileCache = getFileCache(key.toString());
 		if (!fileCache.exists())
+			return null;
+		if (cacheExpiryMillis == 0 || fileCache.lastModified() + cacheExpiryMillis < System.currentTimeMillis())
 			return null;
 		try {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -73,6 +82,7 @@ public class PersistentCache extends WeakHashMap<String, byte[]>{
 			fos.write(value);
 			fos.flush();
 			fos.close();
+			fileCache.setLastModified(System.currentTimeMillis());
 		}
 		catch (IOException ioe){
 			logger.log(Level.SEVERE, "Unable to store data to persistent cache", ioe);

@@ -8,5 +8,9 @@
 </head>
 <body>
 
+<%
+Thread.sleep(5000);
+%>
+
 </body>
 </html>
