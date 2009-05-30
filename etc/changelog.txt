@@ -1,3 +1,10 @@
+1.0.3.0 - May 29 2009
+-Added config file, and removed all init-params other than 'config'
+-In config file, you can specify different cache timeouts (and optionally locations) for different regex matches to URIs
+-Config file will auto reload after a given time (defaults to 60 seconds)
+-Cache honours browser HTTP request header 'If-Modified-Since' (at least with respect to the cache itself); if the file has not been cached after the given time, it returns status 304 (Not Modified)
+-Cache (both new requests and cached requests) include Expires and Cache-Control headers to allow browsers to not request again if possible
+
 1.0.2.0 - May 25 2009
 -Added init-param 'cache-expiry' which allows you to set how long to store the cached item before invalidating it.  This value is in seconds.  After the time has been exceeded, the next request to the object will force a non-cached version.
 

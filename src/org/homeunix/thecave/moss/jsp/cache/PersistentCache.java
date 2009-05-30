@@ -5,58 +5,26 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.homeunix.thecave.moss.common.StreamUtil;
+import org.homeunix.thecave.moss.jsp.cache.config.CacheConfig;
 
 /**
- * A persistent cache, backed by both memory and disk.  We use a weak hash map to 
- * let the GC automatically cleanse objects from cache if more memory is needed,
- * while still allowing some memory caching as needed.
+ * A persistent cache, which stores bytes to disk.
  * 
  * @author wyatt
  *
  */
-public class PersistentCache extends WeakHashMap<String, byte[]>{
+public class PersistentCache {
 	private final Logger logger = Logger.getLogger(PersistentCache.class.toString());
-	private final Map<String, Long> lastCacheRefresh; //Only affects in-memory cache
-	private final long cacheExpiryMillis; //How long until cache is invalidated. 0 means cache is stored indefinitely.
 
-	private final File cacheDir;
-	public PersistentCache(File cacheDir, long cacheExpirySeconds) {
-		this.cacheDir = cacheDir;
-		lastCacheRefresh = new HashMap<String, Long>();
-		this.cacheExpiryMillis = cacheExpirySeconds * 1000;
-	}
-	
-	@Override
-	public byte[] get(Object key) {
-		if (super.get(key) != null && (cacheExpiryMillis == 0 || (lastCacheRefresh.get(key) != null && lastCacheRefresh.get(key) + cacheExpiryMillis > System.currentTimeMillis())))
-			return super.get(key);
-		return getFromPersistentCache(key);
-	}
-	
-	@Override
-	public byte[] put(String key, byte[] value) {
-		if (value != null && value.length == 0)
-			value = null;
-		
-		super.put(key, value);
-		lastCacheRefresh.put(key, System.currentTimeMillis());
-		putInPersistentCache(key, value);
-		return null;
-	}
-	
-	private byte[] getFromPersistentCache(Object key){
-		File fileCache = getFileCache(key.toString());
-		if (!fileCache.exists())
+	public synchronized byte[] get(String uri, CacheConfig config) {
+		if (!isCachedItemCurrent(uri, config))
 			return null;
-		if (cacheExpiryMillis == 0 || fileCache.lastModified() + cacheExpiryMillis < System.currentTimeMillis())
-			return null;
+
+		File fileCache = getFileCache(uri, config);
 		try {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			FileInputStream fis = new FileInputStream(fileCache);
@@ -68,8 +36,11 @@ public class PersistentCache extends WeakHashMap<String, byte[]>{
 		}
 	}
 	
-	private void putInPersistentCache(String key, byte[] value){
-		File fileCache = getFileCache(key);
+	public synchronized void put(String uri, CacheConfig config, byte[] value) {
+		if (value != null && value.length == 0)
+			value = null;
+		
+		File fileCache = getFileCache(uri, config);
 		
 		if (value == null){
 			fileCache.delete();
@@ -77,7 +48,10 @@ public class PersistentCache extends WeakHashMap<String, byte[]>{
 		}
 		
 		try {
-			fileCache.createNewFile();
+			if (!config.getCacheFolder(uri).exists())
+				config.getCacheFolder(uri).mkdirs();
+			if (!fileCache.exists())
+				fileCache.createNewFile();
 			FileOutputStream fos = new FileOutputStream(fileCache);
 			fos.write(value);
 			fos.flush();
@@ -89,7 +63,38 @@ public class PersistentCache extends WeakHashMap<String, byte[]>{
 		}
 	}
 	
-	private File getFileCache(String key){
-		return new File(cacheDir.getAbsolutePath() + File.separator + key.replaceAll("[^0-9a-zA-Z-_]", "_"));
+	/**
+	 * Checks if a given URI is cached, and whether it is stale or not.
+	 * @param uri URI to check 
+	 * @param config CacheConfig settings
+	 * @return true if the cached item exists, and is newer than (greater than) X seconds ago; otherwise, return false.
+	 */
+	public synchronized boolean isCachedItemCurrent(String uri, CacheConfig config){
+		Long cachedItemDate = getCachedItemDate(uri, config);
+		if (cachedItemDate == null)
+			return false;
+
+		//We want to find if the cachedItemDate is within (greater than) X seconds ago (where X is expiry time for the URI)
+		if (cachedItemDate + config.getExpiryTimeSeconds(uri) * 1000 < System.currentTimeMillis())
+			return false;
+
+		return true;
+	}
+	
+	/**
+	 * Returns the date at which the item was cached.  If the file doesn't exist, return null.
+	 * @param uri
+	 * @param config
+	 * @return
+	 */
+	public synchronized Long getCachedItemDate(String uri, CacheConfig config){
+		File fileCache = getFileCache(uri, config);
+		if (!fileCache.exists())
+			return null;
+		return fileCache.lastModified();
+	}
+		
+	private File getFileCache(String uri, CacheConfig config){
+		return new File(config.getCacheFolder(uri).getAbsolutePath() + File.separator + uri.replaceAll("[^0-9a-zA-Z-_]", "_"));
 	}
 }

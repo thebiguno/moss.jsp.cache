@@ -15,7 +15,7 @@
 		<filter-class>org.homeunix.thecave.moss.jsp.cache.CacheFilter</filter-class>
 		<init-param>
 			<param-name>cache-expiry</param-name>
-			<param-value>0</param-value>
+			<param-value>5</param-value>
 		</init-param>
 	</filter>
 

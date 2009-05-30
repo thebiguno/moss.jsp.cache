@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<cache xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' 
+		xsi:noNamespaceSchemaLocation='http://moss.thecave.homeunix.org/schema/2009/Cache'
+		refresh-config='5'>
+	<cache-folder>/tmp/cache</cache-folder>
+	<cache-element>
+		<pattern><![CDATA[.*\.jsp$]]></pattern>
+		<expiry-time>60</expiry-time>
+		<cache-folder>/tmp/cache/jsp</cache-folder>
+	</cache-element>
+	<cache-element>
+		<pattern><![CDATA[.*\.css$]]></pattern>
+		<expiry-time>60</expiry-time>
+		<cache-folder>/tmp/cache/css</cache-folder>
+	</cache-element>
+</cache>
