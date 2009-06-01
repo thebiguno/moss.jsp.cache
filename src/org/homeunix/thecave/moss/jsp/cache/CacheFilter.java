@@ -9,6 +9,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
+import java.util.logging.Logger;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -20,13 +21,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.homeunix.thecave.moss.jsp.cache.config.CacheConfig;
+import org.homeunix.thecave.moss.jsp.cache.persistence.PersistentCache;
 
 /**
  * A caching filter which works with the browser (via HTTP headers) to keep
  * network traffice down as much as possible.
  * 
  * Accepts the following init-params:
- *	config (where the cache.xml config file is located, relative to /WEB-INF/) 
+ *	config (where the cache.xml config file is located, relative to /WEB-INF/)
  * 
  * @author wyatt
  *
@@ -35,6 +37,8 @@ public class CacheFilter implements Filter {
 	
 	private PersistentCache cache;
 	private CacheConfig config;
+	
+	private final Logger logger = Logger.getLogger(PersistentCache.class.toString());
 	
 	public void init(FilterConfig filterConfig) throws ServletException {
 		config = new CacheConfig(filterConfig);
@@ -52,78 +56,69 @@ public class CacheFilter implements Filter {
 		HttpServletResponse response = (HttpServletResponse) res;
 		String uri = request.getRequestURL().toString();
 		
-		if (browserCacheIsCurrent(request, response, uri))
+		//If this resource is not supposed to be cached, just pass it down the filter chain.
+		if (!config.isConfigMatchUri(uri)){
+			chain.doFilter(req, res);
 			return;
-			
-		if (serverCacheIsCurrent(request, response, uri))
-			return;
+		}
 		
-		storeCacheOnServer(request, response, uri, chain);
-	}
-	
-	private boolean browserCacheIsCurrent(HttpServletRequest request, HttpServletResponse response, String uri) throws IOException, ServletException {
 		//Basically, think of this as a simple question: the browser asks "Hey, I just
 		// saw this page last Friday!  Have you changed it since then?"  If the current
-		// version of the object (cache date) is later than (greater than) the modified
-		// since date, then we return false (meaning that, No, the browser cache is not
+		// version of the object (cacheDate) is later (greater) than the modifiedSinceDate, 
+		// then we skip this (meaning that, No, the browser cache is not
 		// current).  If the cache date is earlier than the last time the browser saw it,
-		// then we return 304 Not Modified.
+		// then we mark the response as status 304 Not Modified, and return.
 		String ifModifiedSinceString = request.getHeader("If-Modified-Since");
 		if (ifModifiedSinceString != null){
 			try {
 				Long modifiedSinceDate = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z").parse(ifModifiedSinceString).getTime();
 				Long cacheDate = cache.getCachedItemDate(uri, config);
-				if (cacheDate == null)
-					return false;
-				
-				if (cacheDate < modifiedSinceDate){
-					//Return Status 304 Not Modified
-					response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
-					response.getOutputStream().close();
-					response.flushBuffer();
-					System.out.println("304");
-					return true;
+				if (cacheDate != null){
+					if (cacheDate < modifiedSinceDate){
+						//Return Status 304 Not Modified
+						response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+						response.getOutputStream().close();
+						response.flushBuffer();
+						logger.fine("Returning HTTP Status 304 for " + uri + " (request If-Modified-Since header is '" + ifModifiedSinceString + "'");
+						return;
+					}
 				}
 			}
 			catch (ParseException pe){}
 		}
-		
-		return false;
-	}
-	
-	private boolean serverCacheIsCurrent(HttpServletRequest request, HttpServletResponse response, String uri) throws IOException, ServletException {
+			
 		if (cache.get(uri, config) != null){
 			response.getOutputStream().write(cache.get(uri, config));
 
 			Date expiryDate = new Date(cache.getCachedItemDate(uri, config) + config.getExpiryTimeSeconds(uri) * 1000);
-			DateFormat httpDateFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
-			httpDateFormatter.setTimeZone(TimeZone.getTimeZone("GMT"));
-			response.addHeader("Expires", httpDateFormatter.format(expiryDate));
-			response.addHeader("Cache-Control", "max-age=" + config.getExpiryTimeSeconds(uri));
-
-			System.out.println("Returning Cached Version");
-			return true;
+			addHeaders(response, uri, expiryDate);
+			
+			logger.fine("Returning cached version for " + uri + ".");
+			return;
 		}
 		
-		return false;
-	}
-	
-	private void storeCacheOnServer(HttpServletRequest request, HttpServletResponse response, String uri, FilterChain chain) throws IOException, ServletException {
 		//If the object is not cached, we will load it, grab the bytes, and cache it, before returning.
-		CachingServletResponseWrapper responseWrapper = new CachingServletResponseWrapper(response);
+		SplitStreamServletResponseWrapper splitStreamResponse = new SplitStreamServletResponseWrapper(response);
 		Date expiryDate = new Date(System.currentTimeMillis() + (config.getExpiryTimeSeconds(uri) * 1000));
-		DateFormat httpDateFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
-		httpDateFormatter.setTimeZone(TimeZone.getTimeZone("GMT"));
-		responseWrapper.addHeader("Expires", httpDateFormatter.format(expiryDate));
-		responseWrapper.addHeader("Cache-Control", "max-age=" + config.getExpiryTimeSeconds(uri));
+		addHeaders(splitStreamResponse, uri, expiryDate);
 		
 		//Continue on down the filter chain to get the actual content.
-		chain.doFilter(request, responseWrapper);
+		chain.doFilter(request, splitStreamResponse);
 		
 		//Once the request / response has come through, save the data. 
-		cache.put(uri, config, responseWrapper.getData());
-		
-		System.out.println("Storing data in server cache");
+		cache.put(uri, config, splitStreamResponse.getData());
+	}
+	
+	private void addHeaders(HttpServletResponse response, String uri, Date expiryDate){
+		DateFormat httpDateFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
+		httpDateFormatter.setTimeZone(TimeZone.getTimeZone("GMT"));
+		addHeaderIfAllowed(response, "Expires", httpDateFormatter.format(expiryDate));
+		addHeaderIfAllowed(response, "Cache-Control", "max-age=" + config.getExpiryTimeSeconds(uri));		
+	}
+	
+	private void addHeaderIfAllowed(HttpServletResponse response, String headerName, String headerValue){
+		if (config.isHeaderAllowed(headerName))
+			response.addHeader(headerName, headerValue);
 	}
 	
 	public void destroy() {

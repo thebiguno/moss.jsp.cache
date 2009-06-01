@@ -3,6 +3,11 @@
 		xsi:noNamespaceSchemaLocation='http://moss.thecave.homeunix.org/schema/2009/Cache'
 		refresh-config='5'>
 	<cache-folder>/tmp/cache</cache-folder>
+	<memory-item-capacity>2</memory-item-capacity>
+	<!-- 
+	<purge-header>Expires</purge-header>
+	<purge-header>Cache-Control</purge-header>
+	-->
 	<cache-element>
 		<pattern><![CDATA[.*\.jsp$]]></pattern>
 		<expiry-time>60</expiry-time>
@@ -12,5 +17,9 @@
 		<pattern><![CDATA[.*\.css$]]></pattern>
 		<expiry-time>60</expiry-time>
 		<cache-folder>/tmp/cache/css</cache-folder>
+	</cache-element>
+	<cache-element>
+		<pattern><![CDATA[.*$]]></pattern>
+		<expiry-time>60</expiry-time>
 	</cache-element>
 </cache>

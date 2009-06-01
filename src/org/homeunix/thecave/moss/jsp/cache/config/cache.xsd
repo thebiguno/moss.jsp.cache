@@ -4,6 +4,8 @@
 		<xs:complexType>
 			<xs:sequence>
 				<xs:element ref="cache-folder" minOccurs="0" />
+				<xs:element ref="memory-item-capacity" minOccurs="0" />
+				<xs:element ref="purge-header" minOccurs="0" maxOccurs="unbounded"/>
 				<xs:element ref="cache-element" minOccurs="0" maxOccurs="unbounded" />
 			</xs:sequence>
 			<xs:attribute name="refresh-config" use="optional" />
@@ -19,8 +21,16 @@
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
-
+	
 	<xs:element name="pattern">
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="xs:string" />
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+	
+	<xs:element name="purge-header">
 		<xs:complexType>
 			<xs:simpleContent>
 				<xs:extension base="xs:string" />
@@ -35,6 +45,15 @@
 			</xs:simpleContent>
 		</xs:complexType>
 	</xs:element>
+	
+	<xs:element name="memory-item-capacity">
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="xs:integer" />
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+
 	
 	<xs:element name="cache-folder">
 		<xs:complexType>
