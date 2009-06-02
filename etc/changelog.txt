@@ -1,3 +1,9 @@
+1.1.0.0 - June 2 2009
+-Re-did architecture, to support new features and clean the code
+-Pluggable (at config time) persitence backing, loaded in particular order; default options include memory and disk.
+-Config is now handled via XStream serializer
+-Started implementing support for cached headers and other metadata	 
+
 1.0.3.0 - May 29 2009
 -Added config file, and removed all init-params other than 'config'
 -In config file, you can specify different cache timeouts (and optionally locations) for different regex matches to URIs

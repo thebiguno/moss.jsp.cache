@@ -1,36 +1,15 @@
-<?xml version="1.0"?>
-<cache xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' 
-		xsi:noNamespaceSchemaLocation='http://moss.thecave.homeunix.org/schema/2009/Cache'>
-	<!-- 
-	<purge-header>Expires</purge-header>
-	<purge-header>Cache-Control</purge-header>
-	-->
-	<cache-backing>
-		<class-name>org.homeunix.thecave.moss.jsp.cache.persistence.MemoryCache</class-name>
-		<cache-parameter>
-			<name>capacity</name>
-			<value>100</value>
-		</cache-parameter>
-	</cache-backing>
-	<cache-backing>
-		<class-name>org.homeunix.thecave.moss.jsp.cache.persistence.DiskCache</class-name>
-		<cache-parameter>
-			<name>folder</name>
-			<value>/tmp/my-cache</value>
-		</cache-parameter>
-	</cache-backing>
-	<cache-element>
-		<pattern><![CDATA[.*\.jsp$]]></pattern>
-		<expiry-time>60</expiry-time>
-		<cache-folder>/tmp/cache/jsp</cache-folder>
-	</cache-element>
-	<cache-element>
-		<pattern><![CDATA[.*\.css$]]></pattern>
-		<expiry-time>60</expiry-time>
-		<cache-folder>/tmp/cache/css</cache-folder>
-	</cache-element>
-	<cache-element>
-		<pattern><![CDATA[.*$]]></pattern>
-		<expiry-time>60</expiry-time>
-	</cache-element>
+<?xml version="1.0" encoding="UTF-8"?>
+<cache>
+  <persistence-backing class-name="org.homeunix.thecave.moss.jsp.cache.persistence.impl.MemoryPersistence">
+    <parameter name="item-count" value="100"/>
+  </persistence-backing>
+  <persistence-backing class-name="org.homeunix.thecave.moss.jsp.cache.persistence.impl.DiskPersistence">
+    <parameter name="cache-path" value="/tmp/foo/bar"/>
+  </persistence-backing>
+  
+  <cache-mapping pattern=".*\.jsp" expiryTime="60"/>
+  <cache-mapping pattern=".*\.css" expiryTime="60"/>
+  
+  <ignore-header>X-Header-1</ignore-header>
+  <ignore-header>X-Header-2</ignore-header>  
 </cache>
