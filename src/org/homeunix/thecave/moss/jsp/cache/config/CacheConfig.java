@@ -2,8 +2,10 @@ package org.homeunix.thecave.moss.jsp.cache.config;
 
 import java.io.File;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -26,24 +28,22 @@ public class CacheConfig {
 
 	private final FilterConfig filterConfig;
 
-	private long refreshConfig; //in millis
-	private long lastConfigRefresh = 0l;
 	private File defaultCacheFolder;
 	private int memoryCacheItemCapacity = 0;
 
 	private final Map<Pattern, ConfigElement> cacheElements = new LinkedHashMap<Pattern, ConfigElement>();
 	private final Set<String> purgedHeaders = new HashSet<String>();
+	private final List<String> cacheImpls = new ArrayList<String>();
 
 	private final Logger logger = Logger.getLogger(this.getClass().getName());
 
 	public CacheConfig(FilterConfig filterConfig) {
 		this.filterConfig = filterConfig;
+		
+		loadConfig();
 	}
 
 	private synchronized void loadConfig(){
-		if (lastConfigRefresh + refreshConfig > System.currentTimeMillis())
-			return;
-
 		try {
 			String config = filterConfig.getInitParameter("config");
 			if (config == null || config.length() == 0)
@@ -61,17 +61,11 @@ public class CacheConfig {
 			Document doc = db.parse(is);
 			doc.getDocumentElement().normalize();
 
-			try {
-				refreshConfig = Long.parseLong(doc.getFirstChild().getAttributes().getNamedItem("refresh-config").getNodeValue()) * 1000;
-			}
-			catch (NumberFormatException nfe){
-				refreshConfig = 60 * 1000;
-			}
-
 			//Clear out the last cache elements
 			memoryCacheItemCapacity = 0;
 			cacheElements.clear();
 			purgedHeaders.clear();
+			cacheImpls.clear();
 			defaultCacheFolder = new File(System.getProperty("java.io.tmpdir") + "/org.homeunix.thecave.moss.jsp.cache");
 
 			//The 'nodes' list now contains all the children of root ('cache')
@@ -84,6 +78,9 @@ public class CacheConfig {
 				}
 				else if (node.getNodeName().equals("purge-header")){
 					purgedHeaders.add(node.getTextContent());
+				}
+				else if (node.getNodeName().equals("cache-impl")){
+					cacheImpls.add(node.getTextContent());
 				}
 				else if (node.getNodeName().equals("memory-item-capacity")){
 					try {
@@ -125,8 +122,6 @@ public class CacheConfig {
 					}
 				}
 			}
-
-			lastConfigRefresh = System.currentTimeMillis();
 		}
 		catch (Exception e){
 			logger.log(Level.WARNING, "There was an error reading the cache config file", e);
@@ -140,8 +135,6 @@ public class CacheConfig {
 	 * @return
 	 */
 	public boolean isConfigMatchUri(String uri){
-		loadConfig();
-
 		for (Pattern pattern : cacheElements.keySet()) {
 			if (pattern.matcher(uri).matches()){
 				return true;
@@ -159,8 +152,6 @@ public class CacheConfig {
 	 * @return
 	 */
 	public synchronized File getCacheFolder(String uri){
-		loadConfig();
-
 		for (Pattern pattern : cacheElements.keySet()) {
 			if (pattern.matcher(uri).matches()){
 				if (cacheElements.get(pattern).getCacheFolder() != null)
@@ -181,8 +172,6 @@ public class CacheConfig {
 	 * @return
 	 */
 	public synchronized Long getExpiryTimeSeconds(String uri){
-		loadConfig();
-
 		for (Pattern pattern : cacheElements.keySet()) {
 			if (pattern.matcher(uri).matches()){
 				return cacheElements.get(pattern).getExpiryTimeSeconds();
@@ -199,8 +188,6 @@ public class CacheConfig {
 	 * @return
 	 */
 	public synchronized boolean isHeaderAllowed(String headerName){
-		loadConfig();
-
 		if (purgedHeaders.contains(headerName))
 			return false;
 

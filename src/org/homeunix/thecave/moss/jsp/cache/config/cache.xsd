@@ -3,12 +3,10 @@
 	<xs:element name="cache">
 		<xs:complexType>
 			<xs:sequence>
-				<xs:element ref="cache-folder" minOccurs="0" />
-				<xs:element ref="memory-item-capacity" minOccurs="0" />
+				<xs:element ref="cache-backing" minOccurs="0" maxOccurs="unbounded"/>
 				<xs:element ref="purge-header" minOccurs="0" maxOccurs="unbounded"/>
 				<xs:element ref="cache-element" minOccurs="0" maxOccurs="unbounded" />
 			</xs:sequence>
-			<xs:attribute name="refresh-config" use="optional" />
 		</xs:complexType>
 	</xs:element>
 
@@ -17,7 +15,15 @@
 			<xs:sequence>
 				<xs:element ref="pattern" />
 				<xs:element ref="expiry-time" />
-				<xs:element ref="cache-folder" minOccurs="0" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+	<xs:element name="cache-backing">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="class-name" />
+				<xs:element ref="cache-parameter" minOccurs="0" maxOccurs="unbounded" />
 			</xs:sequence>
 		</xs:complexType>
 	</xs:element>
@@ -46,16 +52,32 @@
 		</xs:complexType>
 	</xs:element>
 	
-	<xs:element name="memory-item-capacity">
+	<xs:element name="class-name">
 		<xs:complexType>
 			<xs:simpleContent>
-				<xs:extension base="xs:integer" />
+				<xs:extension base="xs:string" />
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+	
+	<xs:element name="cache-parameter">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element ref="name" />
+				<xs:element ref="value" />
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	
+	<xs:element name="name">
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="xs:string" />
 			</xs:simpleContent>
 		</xs:complexType>
 	</xs:element>
 
-	
-	<xs:element name="cache-folder">
+	<xs:element name="value">
 		<xs:complexType>
 			<xs:simpleContent>
 				<xs:extension base="xs:string" />

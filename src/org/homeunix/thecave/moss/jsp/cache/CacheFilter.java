@@ -21,7 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.homeunix.thecave.moss.jsp.cache.config.CacheConfig;
-import org.homeunix.thecave.moss.jsp.cache.persistence.PersistentCache;
+import org.homeunix.thecave.moss.jsp.cache.persistence.CacheManager;
 
 /**
  * A caching filter which works with the browser (via HTTP headers) to keep
@@ -35,14 +35,14 @@ import org.homeunix.thecave.moss.jsp.cache.persistence.PersistentCache;
  */
 public class CacheFilter implements Filter {
 	
-	private PersistentCache cache;
+	private CacheManager cache;
 	private CacheConfig config;
 	
-	private final Logger logger = Logger.getLogger(PersistentCache.class.toString());
+	private final Logger logger = Logger.getLogger(CacheManager.class.toString());
 	
 	public void init(FilterConfig filterConfig) throws ServletException {
 		config = new CacheConfig(filterConfig);
-		cache = new PersistentCache();
+		cache = new CacheManager();
 	}
 	
 	public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
