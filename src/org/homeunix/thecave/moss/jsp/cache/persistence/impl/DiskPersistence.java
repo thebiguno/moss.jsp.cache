@@ -10,22 +10,44 @@ import java.util.logging.Logger;
 
 import org.homeunix.thecave.moss.common.StreamUtil;
 import org.homeunix.thecave.moss.jsp.cache.config.Config;
-import org.homeunix.thecave.moss.jsp.cache.persistence.CachedRequest;
-import org.homeunix.thecave.moss.jsp.cache.persistence.PersistenceBacking;
+import org.homeunix.thecave.moss.jsp.cache.config.PersistenceBacking;
+import org.homeunix.thecave.moss.jsp.cache.persistence.CachedResponse;
+import org.homeunix.thecave.moss.jsp.cache.persistence.Persistence;
 
-public class DiskPersistence implements PersistenceBacking {
+public class DiskPersistence implements Persistence {
+	public static final String CACHE_PATH_PARAMETER = "cache-path";
+	
 	private final Logger logger = Logger.getLogger(this.getClass().getName());
+	private final File cachePath;
 	
-	public static final String CACHE_PATH = "cache-path";
 	
-	public synchronized CachedRequest get(String uri, Config config) {
+	public DiskPersistence(Config config) {
+		PersistenceBacking backing = config.getPersistenceBacking(this.getClass().getName());
+		String cachePath = null;
+		if (backing != null){
+			String itemCount = backing.getParameter(CACHE_PATH_PARAMETER);
+			if (itemCount != null){
+				cachePath = itemCount;
+			}
+		}
+		
+		if (cachePath == null)
+			cachePath = System.getProperty("java.io.tmpdir", "/tmp") + "/org.homeunix.thecave.moss.jsp.cache";
+
+		this.cachePath = new File(cachePath);
+	}
+	
+	public synchronized CachedResponse get(String uri, Config config) {
+		//TODO Support headers / metadata
 		File fileCache = getFileCache(uri, config);
 		try {
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			FileInputStream fis = new FileInputStream(fileCache);
 			StreamUtil.copyStream(fis, baos);
 			logger.finer("Found '" + uri + "' in disk cache");
-			return new CachedRequest(baos.toByteArray());
+			CachedResponse cachedResponse = new CachedResponse();
+			cachedResponse.setRequestData(baos.toByteArray());
+			return cachedResponse;
 		}
 		catch (IOException ioe){
 			logger.log(Level.WARNING, "Error retrieving '" + uri + " in disk cache", ioe);
@@ -33,7 +55,8 @@ public class DiskPersistence implements PersistenceBacking {
 		}
 	}
 	
-	public synchronized void put(String uri, Config config, CachedRequest request) {
+	public synchronized void put(String uri, Config config, CachedResponse request) {
+		//TODO Support headers / metadata
 		File fileCache = getFileCache(uri, config);
 		
 		byte[] value = request.getRequestData();
@@ -45,8 +68,8 @@ public class DiskPersistence implements PersistenceBacking {
 		
 		try {
 			logger.finer("Stored '" + uri + "' in disk cache at '" + fileCache.getAbsolutePath() + "'");
-			if (!this.getCacheFolder(uri, config).exists())
-				this.getCacheFolder(uri, config).mkdirs();
+			if (!cachePath.exists())
+				cachePath.mkdirs();
 			if (!fileCache.exists())
 				fileCache.createNewFile();
 			FileOutputStream fos = new FileOutputStream(fileCache);
@@ -68,14 +91,14 @@ public class DiskPersistence implements PersistenceBacking {
 	}
 		
 	private File getFileCache(String uri, Config config){
-		return new File(this.getCacheFolder(uri, config).getAbsolutePath() + File.separator + uri.replaceAll("[^0-9a-zA-Z-_]", "_"));
+		return new File(cachePath.getAbsolutePath() + File.separator + uri.replaceAll("[^0-9a-zA-Z-_]", "_"));
 	}
 	
-	private File getCacheFolder(String uri, Config config){
-		String cachePath = config.getPersistenceBacking(this.getClass().getName()).getParameter(CACHE_PATH);
-		if (cachePath == null)
-			cachePath = System.getProperty("java.io.tmpdir", "/tmp") + "/org.homeunix.thecave.moss.jsp.cache";
-
-		return new File(cachePath);
-	}
+//	private File getCacheFolder(String uri, Config config){
+//		String cachePath = config.getPersistenceBacking(this.getClass().getName()).getParameter(CACHE_PATH_PARAMETER);
+//		if (cachePath == null)
+//			cachePath = System.getProperty("java.io.tmpdir", "/tmp") + "/org.homeunix.thecave.moss.jsp.cache";
+//
+//		return new File(cachePath);
+//	}
 }

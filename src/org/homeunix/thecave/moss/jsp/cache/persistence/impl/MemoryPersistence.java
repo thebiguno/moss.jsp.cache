@@ -1,20 +1,40 @@
 package org.homeunix.thecave.moss.jsp.cache.persistence.impl;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.homeunix.thecave.moss.collections.HistoryMap;
+import org.homeunix.thecave.moss.collections.ConcurrentHistoryMap;
 import org.homeunix.thecave.moss.jsp.cache.config.Config;
-import org.homeunix.thecave.moss.jsp.cache.persistence.CachedRequest;
-import org.homeunix.thecave.moss.jsp.cache.persistence.PersistenceBacking;
+import org.homeunix.thecave.moss.jsp.cache.config.PersistenceBacking;
+import org.homeunix.thecave.moss.jsp.cache.persistence.CachedResponse;
+import org.homeunix.thecave.moss.jsp.cache.persistence.Persistence;
 
-public class MemoryPersistence implements PersistenceBacking {
+public class MemoryPersistence implements Persistence {
 	private final Logger logger = Logger.getLogger(this.getClass().getName());
 	
-	private final HistoryMap<String, CachedRequest> memoryCache = new HistoryMap<String, CachedRequest>();
+	private final ConcurrentHistoryMap<String, CachedResponse> memoryCache = new ConcurrentHistoryMap<String, CachedResponse>();
 	
-	public static final String ITEM_COUNT = "item-count";
+	public static final String ITEM_COUNT_PARAMETER = "item-count";
+	public static final int DEFAULT_ITEM_COUNT = 32;
 	
-	public synchronized CachedRequest get(String uri, Config config) {
+	public MemoryPersistence(Config config) {
+		PersistenceBacking backing = config.getPersistenceBacking(this.getClass().getName());
+		if (backing != null){
+			String itemCount = backing.getParameter(ITEM_COUNT_PARAMETER);
+			if (itemCount != null){
+				try {
+					int capacity = Integer.parseInt(itemCount);
+					memoryCache.setCapacity(capacity);
+				}
+				catch (NumberFormatException nfe){
+					logger.log(Level.CONFIG, "Cannot parse item count; setting to default cache size of " + DEFAULT_ITEM_COUNT, nfe);
+					memoryCache.setCapacity(DEFAULT_ITEM_COUNT);
+				}
+			}
+		}
+	}
+	
+	public CachedResponse get(String uri, Config config) {
 		if (memoryCache.containsKey(uri)){
 			logger.finer("Found '" + uri + "' in memory cache");
 			return memoryCache.get(uri);
@@ -23,7 +43,7 @@ public class MemoryPersistence implements PersistenceBacking {
 		return null;
 	}
 	
-	public synchronized void put(String uri, Config config, CachedRequest request) {
+	public void put(String uri, Config config, CachedResponse request) {
 		byte[] value = request.getRequestData();
 		if (value != null && value.length == 0){
 			logger.finer("Request data was empty; not caching, and removing existing cache (if it exists).");
@@ -32,10 +52,10 @@ public class MemoryPersistence implements PersistenceBacking {
 		}
 
 		memoryCache.put(uri, request);
-		logger.finer("Stored '" + uri + "' in memory cache");
+		logger.finer("Stored '" + uri + "' in memory cache; " + memoryCache.size() + "/" + memoryCache.getCapacity() + " responses stored.");
 	}
 	
-	public synchronized Long getCacheDate(String uri, Config config) {
+	public Long getCacheDate(String uri, Config config) {
 		if (memoryCache.get(uri) != null)
 			return memoryCache.get(uri).getCachedDate();
 		return null;

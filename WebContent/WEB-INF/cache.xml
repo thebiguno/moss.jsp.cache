@@ -3,13 +3,10 @@
   <persistence-backing class-name="org.homeunix.thecave.moss.jsp.cache.persistence.impl.MemoryPersistence">
     <parameter name="item-count" value="100"/>
   </persistence-backing>
-  <persistence-backing class-name="org.homeunix.thecave.moss.jsp.cache.persistence.impl.DiskPersistence">
-    <parameter name="cache-path" value="/tmp/foo/bar"/>
-  </persistence-backing>
+  <!-- 
+  -->
+  <persistence-backing class-name="org.homeunix.thecave.moss.jsp.cache.persistence.impl.DiskPersistence"/>
   
   <cache-mapping pattern=".*\.jsp" expiryTime="60"/>
-  <cache-mapping pattern=".*\.css" expiryTime="60"/>
-  
-  <ignore-header>X-Header-1</ignore-header>
-  <ignore-header>X-Header-2</ignore-header>  
+  <cache-mapping pattern=".*\.css" expiryTime="60"/>  
 </cache>

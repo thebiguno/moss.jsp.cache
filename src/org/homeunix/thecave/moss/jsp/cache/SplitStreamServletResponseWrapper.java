@@ -23,6 +23,7 @@ public class SplitStreamServletResponseWrapper extends HttpServletResponseWrappe
 	private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 	
 	private Map<String, String> headers = new LinkedHashMap<String, String>();
+//	private String contentType = "";
 	private int status = HttpServletResponse.SC_OK; //Default to 200, if anything else it will be set below.
 
 	public SplitStreamServletResponseWrapper(HttpServletResponse response){
@@ -32,16 +33,12 @@ public class SplitStreamServletResponseWrapper extends HttpServletResponseWrappe
 
 	@Override
 	public PrintWriter getWriter() throws IOException {
-		if (printWriter != null || outputStream != null)
-			throw new IllegalStateException("Invalid state");
 		printWriter = new CachingPrintWriter(response.getWriter(), new PrintWriter(baos));
 		return printWriter;
 	}
 
 	@Override
 	public ServletOutputStream getOutputStream() throws IOException {
-		if (printWriter != null || outputStream != null)
-			throw new IllegalStateException("Invalid state");
 		outputStream = new CachingServletOutputStream(response.getOutputStream(), baos);
 		return outputStream;
 	}
@@ -49,6 +46,12 @@ public class SplitStreamServletResponseWrapper extends HttpServletResponseWrappe
 	@Override
 	public void setHeader(String name, String value) {
 		super.setHeader(name, value);
+		this.headers.put(name, value);
+	}
+	
+	@Override
+	public void addHeader(String name, String value) {
+		super.addHeader(name, value);
 		this.headers.put(name, value);
 	}
 	
@@ -71,6 +74,12 @@ public class SplitStreamServletResponseWrapper extends HttpServletResponseWrappe
 	public int getStatus() {
 		return status;
 	}
+	
+//	@Override
+//	public void setContentType(String type) {
+//		super.setContentType(type);
+//		this.contentType = type;
+//	}
 	
 	public byte[] getData() throws IOException {
 		if (printWriter != null)

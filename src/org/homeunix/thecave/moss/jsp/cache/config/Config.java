@@ -1,13 +1,10 @@
 package org.homeunix.thecave.moss.jsp.cache.config;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.homeunix.thecave.moss.jsp.cache.persistence.CacheDelegate;
@@ -26,8 +23,8 @@ public class Config {
 	private List<CacheMapping> cacheMappings = new ArrayList<CacheMapping>();
 	@XStreamImplicit
 	private List<PersistenceBacking> persistenceBackings = new ArrayList<PersistenceBacking>();	
-	@XStreamImplicit(itemFieldName="ignore-header")
-	private Set<String> headerBlacklist = new HashSet<String>();
+//	@XStreamImplicit(itemFieldName="ignore-header")
+//	private Set<String> headerBlacklist = new HashSet<String>();
 	
 	private CacheDelegate cacheDelegate = null;
 	
@@ -35,28 +32,32 @@ public class Config {
 		return persistenceBackingsByClass.get(className);
 	}
 	
-	public Collection<PersistenceBacking> getPersistenceBackingsByClass() {
-		return Collections.unmodifiableCollection(persistenceBackingsByClass.values());
-	}
-	public Collection<CacheMapping> getCacheElements() {
-		return Collections.unmodifiableCollection(cacheMappingsByPattern.values());
-	}
-	public Set<String> getHeaderBlacklist() {
-		return Collections.unmodifiableSet(headerBlacklist);
+	public List<String> getPersistenceBackingClassNames(){
+		return Collections.unmodifiableList(new ArrayList<String>(persistenceBackingsByClass.keySet()));
 	}
 	
-	public void addPersistenceBacking(PersistenceBacking cacheBacking){
-		this.persistenceBackingsByClass.put(cacheBacking.getClassName(), cacheBacking);
-		this.persistenceBackings.add(cacheBacking);
-		this.cacheDelegate = null;
-	}
-	public void addCacheMapping(CacheMapping cacheMapping){
-		this.cacheMappingsByPattern.put(Pattern.compile(cacheMapping.getPattern()), cacheMapping);
-		this.cacheMappings.add(cacheMapping);
-	}
-	public void addHeaderBlacklist(String blacklistEntry){
-		this.headerBlacklist.add(blacklistEntry);
-	}
+//	public Collection<Persistence> getPersistenceBackingsByClass() {
+//		return Collections.unmodifiableCollection(persistenceBackingsByClass.values());
+//	}
+//	public Collection<CacheMapping> getCacheElements() {
+//		return Collections.unmodifiableCollection(cacheMappingsByPattern.values());
+//	}
+//	public Set<String> getHeaderBlacklist() {
+//		return Collections.unmodifiableSet(headerBlacklist);
+//	}
+//	
+//	public void addPersistenceBacking(Persistence cacheBacking){
+//		this.persistenceBackingsByClass.put(cacheBacking.getClassName(), cacheBacking);
+//		this.persistenceBackings.add(cacheBacking);
+//		this.cacheDelegate = null;
+//	}
+//	public void addCacheMapping(CacheMapping cacheMapping){
+//		this.cacheMappingsByPattern.put(Pattern.compile(cacheMapping.getPattern()), cacheMapping);
+//		this.cacheMappings.add(cacheMapping);
+//	}
+//	public void addHeaderBlacklist(String blacklistEntry){
+//		this.headerBlacklist.add(blacklistEntry);
+//	}
 	
 	/**
 	 * Returns the expiry time (in seconds) for the given URI.  This is set on a per-match
@@ -98,7 +99,7 @@ public class Config {
 	 */
 	public CacheDelegate getCacheDelegate(){
 		if (cacheDelegate == null)
-			cacheDelegate = new CacheDelegate(new ArrayList<String>(persistenceBackingsByClass.keySet()));
+			cacheDelegate = new CacheDelegate(this);
 		return cacheDelegate;
 	}
 	

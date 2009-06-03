@@ -24,7 +24,7 @@ import org.homeunix.thecave.moss.common.LogUtil;
 import org.homeunix.thecave.moss.jsp.cache.config.Config;
 import org.homeunix.thecave.moss.jsp.cache.config.ConfigFactory;
 import org.homeunix.thecave.moss.jsp.cache.persistence.CacheDelegate;
-import org.homeunix.thecave.moss.jsp.cache.persistence.CachedRequest;
+import org.homeunix.thecave.moss.jsp.cache.persistence.CachedResponse;
 
 /**
  * A caching filter which works with the browser (via HTTP headers) to keep
@@ -40,7 +40,7 @@ import org.homeunix.thecave.moss.jsp.cache.persistence.CachedRequest;
 public class CacheFilter implements Filter {
 	
 	private Config config;
-	private final Logger logger = Logger.getLogger(CacheDelegate.class.toString());
+	private final Logger logger = Logger.getLogger(CacheDelegate.class.getName());
 	
 	public void init(FilterConfig filterConfig) throws ServletException {
 		config = ConfigFactory.loadConfig(filterConfig);
@@ -56,11 +56,11 @@ public class CacheFilter implements Filter {
 		
 		HttpServletRequest request = (HttpServletRequest) req;
 		HttpServletResponse response = (HttpServletResponse) res;
-		String uri = request.getRequestURL().toString();
+		String uri = request.getRequestURI();
 		
 		//If this resource is not supposed to be cached, just pass it down the filter chain.
 		if (!config.isMatched(uri)){
-			logger.finer("Could not find a match for '" + uri + "' in any persistence backing.");
+			logger.finer("Could not find a match for '" + uri + "' in any persistence backing; bypassing cache.");
 			chain.doFilter(req, res);
 			return;
 		}
@@ -90,45 +90,56 @@ public class CacheFilter implements Filter {
 			catch (ParseException pe){}
 		}
 			
-		if (config.getCacheDelegate().get(uri, config) != null){
-			//TODO Handle metadata as well as request data
-			response.getOutputStream().write(config.getCacheDelegate().get(uri, config).getRequestData());
-
-			Date expiryDate = new Date(config.getCacheDelegate().getCacheDate(uri, config) + config.getExpiryTime(uri) * 1000);
-			addHeaders(response, uri, expiryDate);
-			
+		//If there is a copy of this request in cache, we will return it. 
+		CachedResponse cachedResponse = config.getCacheDelegate().get(uri, config);
+		if (cachedResponse != null && cachedResponse.getRequestData() != null){
+			//The expiry headers should have already been set when the response was cached.
+			for (String headerName : cachedResponse.getHeaders().keySet()) {
+				response.addHeader(headerName, cachedResponse.getHeaders().get(headerName));				
+			}
+			response.setLocale(cachedResponse.getLocale());
+			response.setContentType(cachedResponse.getContentType());
+			response.getOutputStream().write(cachedResponse.getRequestData());
 			logger.fine("Returning cached version for " + uri + ".");
 			return;
 		}
 		
 		//If the object is not cached, we will load it, grab the bytes, and cache it, before returning.
 		SplitStreamServletResponseWrapper splitStreamResponse = new SplitStreamServletResponseWrapper(response);
+		
+		//Set the expiry headers
 		Date expiryDate = new Date(System.currentTimeMillis() + (config.getExpiryTime(uri) * 1000));
-		addHeaders(splitStreamResponse, uri, expiryDate);
+		DateFormat httpDateFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
+		httpDateFormatter.setTimeZone(TimeZone.getTimeZone("GMT"));
+		splitStreamResponse.addHeader("Expires", httpDateFormatter.format(expiryDate));
+		splitStreamResponse.addHeader("Expires", httpDateFormatter.format(expiryDate));
+		splitStreamResponse.addHeader("Cache-Control", "max-age=" + config.getExpiryTime(uri));
+		
+		logger.fine("Caching response for " + uri + "; expires in " + config.getExpiryTime(uri) + " seconds.");
 		
 		//Continue on down the filter chain to get the actual content.
 		chain.doFilter(request, splitStreamResponse);
 		
 		//Once the request / response has come through, save the data if it is status 200. 
-		//TODO Add headers as well as data to cache request
-		if (splitStreamResponse.getStatus() == HttpServletResponse.SC_OK)
-			config.getCacheDelegate().put(uri, config, new CachedRequest(splitStreamResponse.getData()));
-		else
+		if (splitStreamResponse.getStatus() == HttpServletResponse.SC_OK){ 
+			if (splitStreamResponse.getData() != null || splitStreamResponse.getData().length == 0){
+				CachedResponse returnedResponse = new CachedResponse();
+				returnedResponse.setRequestData(splitStreamResponse.getData());
+				returnedResponse.addHeaders(splitStreamResponse.getHeaders());
+				returnedResponse.setContentType(splitStreamResponse.getContentType());
+				returnedResponse.setLocale(splitStreamResponse.getLocale());
+
+				config.getCacheDelegate().put(uri, config, returnedResponse);
+			}
+			else {
+				logger.finer("Response data is empty for '" + uri + "'; not storing in cache.");
+			}
+		}
+		else {
 			logger.finer("Response status is '" + splitStreamResponse.getStatus() + "' for '" + uri + "'; not storing in cache");
+		}
 	}
-	
-	private void addHeaders(HttpServletResponse response, String uri, Date expiryDate){
-		DateFormat httpDateFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
-		httpDateFormatter.setTimeZone(TimeZone.getTimeZone("GMT"));
-		addHeaderIfAllowed(response, "Expires", httpDateFormatter.format(expiryDate));
-		addHeaderIfAllowed(response, "Config-Control", "max-age=" + config.getExpiryTime(uri));		
-	}
-	
-	private void addHeaderIfAllowed(HttpServletResponse response, String headerName, String headerValue){
-		if (!config.getHeaderBlacklist().contains(headerName))
-			response.addHeader(headerName, headerValue);
-	}
-	
+		
 	public void destroy() {
 		config = null;
 	}
