@@ -34,30 +34,30 @@ public class MemoryPersistence implements Persistence {
 		}
 	}
 	
-	public CachedResponse get(String uri, Config config) {
-		if (memoryCache.containsKey(uri)){
-			logger.finer("Found '" + uri + "' in memory cache");
-			return memoryCache.get(uri);
+	public CachedResponse get(String url, Config config) {
+		if (memoryCache.containsKey(url)){
+			logger.finer("Found '" + url + "' in memory cache");
+			return memoryCache.get(url);
 		}
 		
 		return null;
 	}
 	
-	public void put(String uri, Config config, CachedResponse request) {
+	public void put(String url, Config config, CachedResponse request) {
 		byte[] value = request.getRequestData();
 		if (value != null && value.length == 0){
 			logger.finer("Request data was empty; not caching, and removing existing cache (if it exists).");
-			memoryCache.remove(uri);
+			memoryCache.remove(url);
 			return;
 		}
 
-		memoryCache.put(uri, request);
-		logger.finer("Stored '" + uri + "' in memory cache; " + memoryCache.size() + "/" + memoryCache.getCapacity() + " responses stored.");
+		memoryCache.put(url, request);
+		logger.finer("Stored '" + url + "' in memory cache; " + memoryCache.size() + "/" + memoryCache.getCapacity() + " responses stored.");
 	}
 	
-	public Long getCacheDate(String uri, Config config) {
-		if (memoryCache.get(uri) != null)
-			return memoryCache.get(uri).getCachedDate();
+	public Long getCacheDate(String url, Config config) {
+		if (memoryCache.get(url) != null)
+			return memoryCache.get(url).getCachedDate();
 		return null;
 	}
 }

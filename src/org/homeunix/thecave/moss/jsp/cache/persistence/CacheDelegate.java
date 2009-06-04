@@ -40,19 +40,20 @@ public class CacheDelegate {
 		}
 	}
 	
-	public CachedResponse get(String uri, Config config) {
-		//Return the first cached request which is found
+	public CachedResponse get(String url, Config config) {
+		//Return the first cached request which is found.  Once a request is found, ensure that
+		// it is present in all caches.
 		for (Persistence cache : cacheList) {
 			logger.finest("Looking at cache " + cache.getClass().getName());
-			Long cacheDate = cache.getCacheDate(uri, config);
-			logger.finest("Cache " + cache.getClass().getName() + " date is " + cacheDate);
+			Long cacheDate = cache.getCacheDate(url, config);
 			if (cacheDate != null){
-				if (isCacheFresh(uri, config, cacheDate)){
-					logger.finest("Cache " + cache.getClass().getName() + " is fresh");
-					CachedResponse request = cache.get(uri, config);
-					if (request != null)
-						logger.finest("Returning stored request from cache " + cache.getClass().getName());
-						return request;
+				if (isCacheFresh(url, config, cacheDate)){
+					CachedResponse response = cache.get(url, config);
+					if (response != null){
+						logger.finer("Returning stored response for " + url + " from cache " + cache.getClass().getName());
+						updateAllPersistenceBackings(response, config);
+						return response;
+					}
 				}
 			}
 		}
@@ -60,18 +61,39 @@ public class CacheDelegate {
 		return null;
 	}
 	
-	public void put(String uri, Config config, CachedResponse request) {
-		//Put the cachedRequest in all persistence stores
+	private void updateAllPersistenceBackings(CachedResponse response, Config config){
 		for (Persistence cache : cacheList) {
-			cache.put(uri, config, request);
+			Long cacheDate = cache.getCacheDate(response.getUrl(), config);
+			if (cacheDate == null){
+				logger.finest("Updating cache " + cache.getClass().getName() + " with " + response.getUrl());
+				cache.put(response.getUrl(), config, response);
+			}
 		}
 	}
 	
-	public Long getCacheDate(String uri, Config config){
-		//Return the first date for the uri which is found
+	public void put(String url, Config config, CachedResponse response) {
+		if (url == null 
+				|| config == null 
+				|| response == null 
+				|| response.getCachedDate() == 0
+				|| response.getRequestData() == null
+				|| response.getRequestData().length == 0)
+			return;
+		
+		//Put the cachedRequest in all persistence stores
 		for (Persistence cache : cacheList) {
-			if (cache.getCacheDate(uri, config) != null)
-				return cache.getCacheDate(uri, config);
+			cache.put(url, config, response);
+		}
+	}
+	
+	public Long getCacheDate(String url, Config config){
+		if (url == null || config == null)
+			return null;
+		
+		//Return the first date for the url which is found; null if it is not found in any cache
+		for (Persistence cache : cacheList) {
+			if (cache.getCacheDate(url, config) != null)
+				return cache.getCacheDate(url, config);
 		}
 		
 		return null;

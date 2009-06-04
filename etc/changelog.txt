@@ -1,3 +1,9 @@
+1.1.0.1 - June 3 2009
+-Finished new architecture implementation
+-Added full header caching support for all required headers
+-Added disk persistence implementation which stores both request and headers
+-Fixed many bugs from version 1.1.0.1; this should now be stable enough for production use.
+
 1.1.0.0 - June 2 2009
 -Re-did architecture, to support new features and clean the code
 -Pluggable (at config time) persitence backing, loaded in particular order; default options include memory and disk.

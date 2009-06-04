@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 import org.homeunix.thecave.moss.jsp.cache.persistence.CacheDelegate;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
+import com.thoughtworks.xstream.annotations.XStreamAsAttribute;
 import com.thoughtworks.xstream.annotations.XStreamImplicit;
 
 @XStreamAlias("cache")
@@ -17,16 +18,19 @@ public class Config {
 
 	private transient Map<String, PersistenceBacking> persistenceBackingsByClass;
 	private transient Map<Pattern, CacheMapping> cacheMappingsByPattern;
+	private transient CacheDelegate cacheDelegate = null;
 	
-	//The following lists are just to allow XStream to store things properly.
 	@XStreamImplicit
 	private List<CacheMapping> cacheMappings = new ArrayList<CacheMapping>();
 	@XStreamImplicit
-	private List<PersistenceBacking> persistenceBackings = new ArrayList<PersistenceBacking>();	
-//	@XStreamImplicit(itemFieldName="ignore-header")
-//	private Set<String> headerBlacklist = new HashSet<String>();
+	private List<PersistenceBacking> persistenceBackings = new ArrayList<PersistenceBacking>();
+	@XStreamAsAttribute
+	@XStreamAlias("log-level")
+	private String logLevel;
 	
-	private CacheDelegate cacheDelegate = null;
+	public String getLogLevel() {
+		return logLevel;
+	}
 	
 	public PersistenceBacking getPersistenceBacking(String className){
 		return persistenceBackingsByClass.get(className);
@@ -35,29 +39,6 @@ public class Config {
 	public List<String> getPersistenceBackingClassNames(){
 		return Collections.unmodifiableList(new ArrayList<String>(persistenceBackingsByClass.keySet()));
 	}
-	
-//	public Collection<Persistence> getPersistenceBackingsByClass() {
-//		return Collections.unmodifiableCollection(persistenceBackingsByClass.values());
-//	}
-//	public Collection<CacheMapping> getCacheElements() {
-//		return Collections.unmodifiableCollection(cacheMappingsByPattern.values());
-//	}
-//	public Set<String> getHeaderBlacklist() {
-//		return Collections.unmodifiableSet(headerBlacklist);
-//	}
-//	
-//	public void addPersistenceBacking(Persistence cacheBacking){
-//		this.persistenceBackingsByClass.put(cacheBacking.getClassName(), cacheBacking);
-//		this.persistenceBackings.add(cacheBacking);
-//		this.cacheDelegate = null;
-//	}
-//	public void addCacheMapping(CacheMapping cacheMapping){
-//		this.cacheMappingsByPattern.put(Pattern.compile(cacheMapping.getPattern()), cacheMapping);
-//		this.cacheMappings.add(cacheMapping);
-//	}
-//	public void addHeaderBlacklist(String blacklistEntry){
-//		this.headerBlacklist.add(blacklistEntry);
-//	}
 	
 	/**
 	 * Returns the expiry time (in seconds) for the given URI.  This is set on a per-match

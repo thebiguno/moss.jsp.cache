@@ -16,19 +16,26 @@ import java.util.Map;
 public class CachedResponse implements Serializable {
 	public static final long serialVersionUID = 0;
 	
+	private String url;
 	private long cachedDate;
 	private final Map<String, String> headers = new HashMap<String, String>();
 	private String contentType;
 	private Locale locale;
 	private byte[] requestData;
 	
-	public CachedResponse() {
-		this.cachedDate = System.currentTimeMillis();
+
+	public String getUrl() {
+		return url;
 	}
-	
+	public void setUrl(String url) {
+		this.url = url;
+	}
 	public long getCachedDate() {
 		return cachedDate;
 	}		
+	public void setCachedDate(long cachedDate) {
+		this.cachedDate = cachedDate;
+	}
 	
 	public String getContentType() {
 		return contentType;

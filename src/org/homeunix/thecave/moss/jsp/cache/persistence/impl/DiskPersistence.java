@@ -1,14 +1,14 @@
 package org.homeunix.thecave.moss.jsp.cache.persistence.impl;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.homeunix.thecave.moss.common.StreamUtil;
 import org.homeunix.thecave.moss.jsp.cache.config.Config;
 import org.homeunix.thecave.moss.jsp.cache.config.PersistenceBacking;
 import org.homeunix.thecave.moss.jsp.cache.persistence.CachedResponse;
@@ -37,27 +37,28 @@ public class DiskPersistence implements Persistence {
 		this.cachePath = new File(cachePath);
 	}
 	
-	public synchronized CachedResponse get(String uri, Config config) {
-		//TODO Support headers / metadata
-		File fileCache = getFileCache(uri, config);
+	public synchronized CachedResponse get(String url, Config config) {
+		File fileCache = getFileCache(url, config);
 		try {
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			FileInputStream fis = new FileInputStream(fileCache);
-			StreamUtil.copyStream(fis, baos);
-			logger.finer("Found '" + uri + "' in disk cache");
-			CachedResponse cachedResponse = new CachedResponse();
-			cachedResponse.setRequestData(baos.toByteArray());
-			return cachedResponse;
+			long startTime = System.currentTimeMillis();
+			ObjectInputStream objectInputStream = new ObjectInputStream(fis);
+			Object persistedObject = objectInputStream.readObject();
+			long endTime = System.currentTimeMillis();
+			if (persistedObject instanceof CachedResponse){
+				logger.finer("Found '" + url + "' in disk cache");
+				logger.finest("Time to de-serialize response: " + (endTime - startTime) + " milliseconds");
+				return (CachedResponse) persistedObject;
+			}
 		}
-		catch (IOException ioe){
-			logger.log(Level.WARNING, "Error retrieving '" + uri + " in disk cache", ioe);
-			return null;
+		catch (Exception e){
+			logger.log(Level.WARNING, "Error retrieving '" + url + " in disk cache", e);
 		}
+		return null;
 	}
 	
-	public synchronized void put(String uri, Config config, CachedResponse request) {
-		//TODO Support headers / metadata
-		File fileCache = getFileCache(uri, config);
+	public synchronized void put(String url, Config config, CachedResponse request) {
+		File fileCache = getFileCache(url, config);
 		
 		byte[] value = request.getRequestData();
 		if (value == null || value.length == 0){
@@ -67,38 +68,33 @@ public class DiskPersistence implements Persistence {
 		}
 		
 		try {
-			logger.finer("Stored '" + uri + "' in disk cache at '" + fileCache.getAbsolutePath() + "'");
+			logger.finer("Stored '" + url + "' in disk cache at '" + fileCache.getAbsolutePath() + "'");
 			if (!cachePath.exists())
 				cachePath.mkdirs();
 			if (!fileCache.exists())
 				fileCache.createNewFile();
-			FileOutputStream fos = new FileOutputStream(fileCache);
-			fos.write(value);
-			fos.flush();
-			fos.close();
-			fileCache.setLastModified(System.currentTimeMillis());
+			long startTime = System.currentTimeMillis();
+			ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(fileCache));
+			os.writeObject(request);
+			os.flush();
+			os.close();
+			fileCache.setLastModified(request.getCachedDate());
+			long endTime = System.currentTimeMillis();
+			logger.finest("Time to serialize response: " + (endTime - startTime) + " milliseconds");
 		}
 		catch (IOException ioe){
-			logger.log(Level.WARNING, "Unable to store " + uri + " to persistent cache", ioe);
+			logger.log(Level.WARNING, "Unable to store " + url + " to persistent cache", ioe);
 		}
 	}
 	
-	public synchronized Long getCacheDate(String uri, Config config){
-		File fileCache = getFileCache(uri, config);
+	public synchronized Long getCacheDate(String url, Config config){
+		File fileCache = getFileCache(url, config);
 		if (!fileCache.exists())
 			return null;
 		return fileCache.lastModified();
 	}
 		
-	private File getFileCache(String uri, Config config){
-		return new File(cachePath.getAbsolutePath() + File.separator + uri.replaceAll("[^0-9a-zA-Z-_]", "_"));
+	private File getFileCache(String url, Config config){
+		return new File(cachePath.getAbsolutePath() + File.separator + url.replaceAll("[^0-9a-zA-Z-_]", "_"));
 	}
-	
-//	private File getCacheFolder(String uri, Config config){
-//		String cachePath = config.getPersistenceBacking(this.getClass().getName()).getParameter(CACHE_PATH_PARAMETER);
-//		if (cachePath == null)
-//			cachePath = System.getProperty("java.io.tmpdir", "/tmp") + "/org.homeunix.thecave.moss.jsp.cache";
-//
-//		return new File(cachePath);
-//	}
 }

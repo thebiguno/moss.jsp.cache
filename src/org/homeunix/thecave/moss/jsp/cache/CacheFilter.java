@@ -32,7 +32,6 @@ import org.homeunix.thecave.moss.jsp.cache.persistence.CachedResponse;
  * 
  * Accepts the following init-params:
  *	config (where the cache.xml config file is located, relative to /WEB-INF/)
- *  log-level (one of FINEST|FINER|FINE|CONFIG|INFO|WARNING|SEVERE)
  * 
  * @author wyatt
  *
@@ -44,7 +43,7 @@ public class CacheFilter implements Filter {
 	
 	public void init(FilterConfig filterConfig) throws ServletException {
 		config = ConfigFactory.loadConfig(filterConfig);
-		LogUtil.setLogLevel(filterConfig.getInitParameter("log-level"));
+		LogUtil.setLogLevel(config.getLogLevel());
 	}
 	
 	public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
@@ -56,11 +55,11 @@ public class CacheFilter implements Filter {
 		
 		HttpServletRequest request = (HttpServletRequest) req;
 		HttpServletResponse response = (HttpServletResponse) res;
-		String uri = request.getRequestURI();
+		String url = request.getRequestURL().toString();
 		
 		//If this resource is not supposed to be cached, just pass it down the filter chain.
-		if (!config.isMatched(uri)){
-			logger.finer("Could not find a match for '" + uri + "' in any persistence backing; bypassing cache.");
+		if (!config.isMatched(url)){
+			logger.finer("Could not find a match for '" + url + "' in any persistence backing; bypassing cache.");
 			chain.doFilter(req, res);
 			return;
 		}
@@ -75,14 +74,14 @@ public class CacheFilter implements Filter {
 		if (ifModifiedSinceString != null){
 			try {
 				Long modifiedSinceDate = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z").parse(ifModifiedSinceString).getTime();
-				Long cacheDate = config.getCacheDelegate().getCacheDate(uri, config);
+				Long cacheDate = config.getCacheDelegate().getCacheDate(url, config);
 				if (cacheDate != null){
 					if (cacheDate < modifiedSinceDate){
 						//Return Status 304 Not Modified
 						response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
 						response.getOutputStream().close();
 						response.flushBuffer();
-						logger.fine("Returning HTTP Status 304 for " + uri + " (request If-Modified-Since header is '" + ifModifiedSinceString + "')");
+						logger.fine("Returning HTTP Status 304 for " + url + " (request If-Modified-Since header is '" + ifModifiedSinceString + "')");
 						return;
 					}
 				}
@@ -91,7 +90,7 @@ public class CacheFilter implements Filter {
 		}
 			
 		//If there is a copy of this request in cache, we will return it. 
-		CachedResponse cachedResponse = config.getCacheDelegate().get(uri, config);
+		CachedResponse cachedResponse = config.getCacheDelegate().get(url, config);
 		if (cachedResponse != null && cachedResponse.getRequestData() != null){
 			//The expiry headers should have already been set when the response was cached.
 			for (String headerName : cachedResponse.getHeaders().keySet()) {
@@ -100,7 +99,7 @@ public class CacheFilter implements Filter {
 			response.setLocale(cachedResponse.getLocale());
 			response.setContentType(cachedResponse.getContentType());
 			response.getOutputStream().write(cachedResponse.getRequestData());
-			logger.fine("Returning cached version for " + uri + ".");
+			logger.fine("Returning cached version for " + url + ".");
 			return;
 		}
 		
@@ -108,35 +107,37 @@ public class CacheFilter implements Filter {
 		SplitStreamServletResponseWrapper splitStreamResponse = new SplitStreamServletResponseWrapper(response);
 		
 		//Set the expiry headers
-		Date expiryDate = new Date(System.currentTimeMillis() + (config.getExpiryTime(uri) * 1000));
+		Date expiryDate = new Date(System.currentTimeMillis() + (config.getExpiryTime(url) * 1000));
 		DateFormat httpDateFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
 		httpDateFormatter.setTimeZone(TimeZone.getTimeZone("GMT"));
 		splitStreamResponse.addHeader("Expires", httpDateFormatter.format(expiryDate));
 		splitStreamResponse.addHeader("Expires", httpDateFormatter.format(expiryDate));
-		splitStreamResponse.addHeader("Cache-Control", "max-age=" + config.getExpiryTime(uri));
+		splitStreamResponse.addHeader("Cache-Control", "max-age=" + config.getExpiryTime(url));
 		
-		logger.fine("Caching response for " + uri + "; expires in " + config.getExpiryTime(uri) + " seconds.");
+		logger.fine("Caching response for " + url + "; expires in " + config.getExpiryTime(url) + " seconds.");
 		
 		//Continue on down the filter chain to get the actual content.
 		chain.doFilter(request, splitStreamResponse);
 		
 		//Once the request / response has come through, save the data if it is status 200. 
 		if (splitStreamResponse.getStatus() == HttpServletResponse.SC_OK){ 
-			if (splitStreamResponse.getData() != null || splitStreamResponse.getData().length == 0){
+			if (splitStreamResponse.getData() != null && splitStreamResponse.getData().length > 0){
 				CachedResponse returnedResponse = new CachedResponse();
+				returnedResponse.setUrl(url);
+				returnedResponse.setCachedDate(System.currentTimeMillis());
 				returnedResponse.setRequestData(splitStreamResponse.getData());
 				returnedResponse.addHeaders(splitStreamResponse.getHeaders());
 				returnedResponse.setContentType(splitStreamResponse.getContentType());
 				returnedResponse.setLocale(splitStreamResponse.getLocale());
 
-				config.getCacheDelegate().put(uri, config, returnedResponse);
+				config.getCacheDelegate().put(url, config, returnedResponse);
 			}
 			else {
-				logger.finer("Response data is empty for '" + uri + "'; not storing in cache.");
+				logger.finer("Response data is empty for '" + url + "'; not storing in cache.");
 			}
 		}
 		else {
-			logger.finer("Response status is '" + splitStreamResponse.getStatus() + "' for '" + uri + "'; not storing in cache");
+			logger.finer("Response status is '" + splitStreamResponse.getStatus() + "' for '" + url + "'; not storing in cache");
 		}
 	}
 		
