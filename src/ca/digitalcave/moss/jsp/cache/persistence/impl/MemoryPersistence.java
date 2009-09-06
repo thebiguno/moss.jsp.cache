@@ -3,8 +3,7 @@ package ca.digitalcave.moss.jsp.cache.persistence.impl;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.homeunix.thecave.moss.collections.ConcurrentHistoryMap;
-
+import ca.digitalcave.moss.collections.ConcurrentHistoryMap;
 import ca.digitalcave.moss.jsp.cache.config.Config;
 import ca.digitalcave.moss.jsp.cache.config.PersistenceBacking;
 import ca.digitalcave.moss.jsp.cache.persistence.CachedResponse;

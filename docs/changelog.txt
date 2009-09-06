@@ -1,3 +1,6 @@
+1.2.0.0 - September 6 2009
+-Renamed packages to ca.digitalcave
+
 1.1.0.1 - June 3 2009
 -Finished new architecture implementation
 -Added full header caching support for all required headers

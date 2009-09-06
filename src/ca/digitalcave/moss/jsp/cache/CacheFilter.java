@@ -20,8 +20,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.homeunix.thecave.moss.common.LogUtil;
-
+import ca.digitalcave.moss.common.LogUtil;
 import ca.digitalcave.moss.jsp.cache.config.Config;
 import ca.digitalcave.moss.jsp.cache.config.ConfigFactory;
 import ca.digitalcave.moss.jsp.cache.persistence.CacheDelegate;
