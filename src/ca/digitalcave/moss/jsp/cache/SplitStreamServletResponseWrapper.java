@@ -1,4 +1,4 @@
-package org.homeunix.thecave.moss.jsp.cache;
+package ca.digitalcave.moss.jsp.cache;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -11,8 +11,8 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
 
-import org.homeunix.thecave.moss.jsp.cache.io.CachingPrintWriter;
-import org.homeunix.thecave.moss.jsp.cache.io.CachingServletOutputStream;
+import ca.digitalcave.moss.jsp.cache.io.CachingPrintWriter;
+import ca.digitalcave.moss.jsp.cache.io.CachingServletOutputStream;
 
 public class SplitStreamServletResponseWrapper extends HttpServletResponseWrapper {
 	private final HttpServletResponse response;

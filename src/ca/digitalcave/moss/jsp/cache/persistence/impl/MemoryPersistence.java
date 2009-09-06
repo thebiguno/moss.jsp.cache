@@ -1,13 +1,14 @@
-package org.homeunix.thecave.moss.jsp.cache.persistence.impl;
+package ca.digitalcave.moss.jsp.cache.persistence.impl;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.homeunix.thecave.moss.collections.ConcurrentHistoryMap;
-import org.homeunix.thecave.moss.jsp.cache.config.Config;
-import org.homeunix.thecave.moss.jsp.cache.config.PersistenceBacking;
-import org.homeunix.thecave.moss.jsp.cache.persistence.CachedResponse;
-import org.homeunix.thecave.moss.jsp.cache.persistence.Persistence;
+
+import ca.digitalcave.moss.jsp.cache.config.Config;
+import ca.digitalcave.moss.jsp.cache.config.PersistenceBacking;
+import ca.digitalcave.moss.jsp.cache.persistence.CachedResponse;
+import ca.digitalcave.moss.jsp.cache.persistence.Persistence;
 
 public class MemoryPersistence implements Persistence {
 	private final Logger logger = Logger.getLogger(this.getClass().getName());

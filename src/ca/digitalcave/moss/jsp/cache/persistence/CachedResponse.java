@@ -1,4 +1,4 @@
-package org.homeunix.thecave.moss.jsp.cache.persistence;
+package ca.digitalcave.moss.jsp.cache.persistence;
 
 import java.io.Serializable;
 import java.util.HashMap;

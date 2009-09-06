@@ -1,4 +1,4 @@
-package org.homeunix.thecave.moss.jsp.cache.config;
+package ca.digitalcave.moss.jsp.cache.config;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.homeunix.thecave.moss.jsp.cache.persistence.CacheDelegate;
+
+import ca.digitalcave.moss.jsp.cache.persistence.CacheDelegate;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import com.thoughtworks.xstream.annotations.XStreamAsAttribute;

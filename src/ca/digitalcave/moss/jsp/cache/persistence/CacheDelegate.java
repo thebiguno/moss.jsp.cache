@@ -1,4 +1,4 @@
-package org.homeunix.thecave.moss.jsp.cache.persistence;
+package ca.digitalcave.moss.jsp.cache.persistence;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.homeunix.thecave.moss.jsp.cache.config.Config;
+import ca.digitalcave.moss.jsp.cache.config.Config;
 
 /**
  * The single persistence class which the CacheFilter interacts with.  This class will pass

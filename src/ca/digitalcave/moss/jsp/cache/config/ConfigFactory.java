@@ -1,4 +1,4 @@
-package org.homeunix.thecave.moss.jsp.cache.config;
+package ca.digitalcave.moss.jsp.cache.config;
 
 import java.io.InputStream;
 import java.util.logging.Logger;

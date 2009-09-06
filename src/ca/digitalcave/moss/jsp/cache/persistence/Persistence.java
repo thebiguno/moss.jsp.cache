@@ -1,6 +1,6 @@
-package org.homeunix.thecave.moss.jsp.cache.persistence;
+package ca.digitalcave.moss.jsp.cache.persistence;
 
-import org.homeunix.thecave.moss.jsp.cache.config.Config;
+import ca.digitalcave.moss.jsp.cache.config.Config;
 
 public interface Persistence {
 	public CachedResponse get(String url, Config config);

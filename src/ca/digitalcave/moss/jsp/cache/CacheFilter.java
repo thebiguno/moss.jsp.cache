@@ -1,7 +1,7 @@
 /*
  * Created on May 28, 2008 by wyatt
  */
-package org.homeunix.thecave.moss.jsp.cache;
+package ca.digitalcave.moss.jsp.cache;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -21,10 +21,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.homeunix.thecave.moss.common.LogUtil;
-import org.homeunix.thecave.moss.jsp.cache.config.Config;
-import org.homeunix.thecave.moss.jsp.cache.config.ConfigFactory;
-import org.homeunix.thecave.moss.jsp.cache.persistence.CacheDelegate;
-import org.homeunix.thecave.moss.jsp.cache.persistence.CachedResponse;
+
+import ca.digitalcave.moss.jsp.cache.config.Config;
+import ca.digitalcave.moss.jsp.cache.config.ConfigFactory;
+import ca.digitalcave.moss.jsp.cache.persistence.CacheDelegate;
+import ca.digitalcave.moss.jsp.cache.persistence.CachedResponse;
 
 /**
  * A caching filter which works with the browser (via HTTP headers) to keep

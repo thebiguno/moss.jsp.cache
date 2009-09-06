@@ -1,4 +1,4 @@
-package org.homeunix.thecave.moss.jsp.cache.config;
+package ca.digitalcave.moss.jsp.cache.config;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
