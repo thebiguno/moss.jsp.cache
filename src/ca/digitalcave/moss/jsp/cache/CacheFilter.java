@@ -88,7 +88,7 @@ public class CacheFilter implements Filter {
 			}
 			catch (ParseException pe){}
 		}
-			
+		
 		//If there is a copy of this request in cache, we will return it. 
 		CachedResponse cachedResponse = config.getCacheDelegate().get(url, config);
 		if (cachedResponse != null && cachedResponse.getRequestData() != null){
@@ -110,34 +110,44 @@ public class CacheFilter implements Filter {
 		Date expiryDate = new Date(System.currentTimeMillis() + (config.getExpiryTime(url) * 1000));
 		DateFormat httpDateFormatter = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z");
 		httpDateFormatter.setTimeZone(TimeZone.getTimeZone("GMT"));
-		splitStreamResponse.addHeader("Expires", httpDateFormatter.format(expiryDate));
-		splitStreamResponse.addHeader("Expires", httpDateFormatter.format(expiryDate));
+		splitStreamResponse.setHeader("Expires", httpDateFormatter.format(expiryDate));
 		splitStreamResponse.addHeader("Cache-Control", "max-age=" + config.getExpiryTime(url));
-		
-		logger.fine("Caching response for " + url + "; expires in " + config.getExpiryTime(url) + " seconds.");
 		
 		//Continue on down the filter chain to get the actual content.
 		chain.doFilter(request, splitStreamResponse);
 		
-		//Once the request / response has come through, save the data if it is status 200. 
-		if (splitStreamResponse.getStatus() == HttpServletResponse.SC_OK){ 
-			if (splitStreamResponse.getData() != null && splitStreamResponse.getData().length > 0){
-				CachedResponse returnedResponse = new CachedResponse();
-				returnedResponse.setUrl(url);
-				returnedResponse.setCachedDate(System.currentTimeMillis());
-				returnedResponse.setRequestData(splitStreamResponse.getData());
-				returnedResponse.addHeaders(splitStreamResponse.getHeaders());
-				returnedResponse.setContentType(splitStreamResponse.getContentType());
-				returnedResponse.setLocale(splitStreamResponse.getLocale());
+		boolean useCache = true;
+		logger.info("headers: " + splitStreamResponse.getHeaders().get("Cache-Control"));
+		if (splitStreamResponse.getHeaders().containsKey("Cache-Control") 
+				&& (splitStreamResponse.getHeaders().get("Cache-Control").contains("no-cache")
+						|| splitStreamResponse.getHeaders().get("Cache-Control").contains("no-store"))){
+			useCache = false;
+			logger.fine("Cache-Control header disabled caching for " + url + ".");
+		}
+		
+		//Once the request / response has come through, save the data if it is status 200.
+		if (useCache) {
+			if (splitStreamResponse.getStatus() == HttpServletResponse.SC_OK){ 
+				if (splitStreamResponse.getData() != null && splitStreamResponse.getData().length > 0){
+					logger.fine("Caching response for " + url + "; expires in " + config.getExpiryTime(url) + " seconds.");
 
-				config.getCacheDelegate().put(url, config, returnedResponse);
+					CachedResponse returnedResponse = new CachedResponse();
+					returnedResponse.setUrl(url);
+					returnedResponse.setCachedDate(System.currentTimeMillis());
+					returnedResponse.setRequestData(splitStreamResponse.getData());
+					returnedResponse.addHeaders(splitStreamResponse.getHeaders());
+					returnedResponse.setContentType(splitStreamResponse.getContentType());
+					returnedResponse.setLocale(splitStreamResponse.getLocale());
+
+					config.getCacheDelegate().put(url, config, returnedResponse);
+				}
+				else {
+					logger.finer("Response data is empty for '" + url + "'; not storing in cache.");
+				}
 			}
 			else {
-				logger.finer("Response data is empty for '" + url + "'; not storing in cache.");
+				logger.finer("Response status is '" + splitStreamResponse.getStatus() + "' for '" + url + "'; not storing in cache");
 			}
-		}
-		else {
-			logger.finer("Response status is '" + splitStreamResponse.getStatus() + "' for '" + url + "'; not storing in cache");
 		}
 	}
 		

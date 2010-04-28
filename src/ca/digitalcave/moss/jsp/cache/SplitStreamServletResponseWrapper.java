@@ -52,7 +52,7 @@ public class SplitStreamServletResponseWrapper extends HttpServletResponseWrappe
 	@Override
 	public void addHeader(String name, String value) {
 		super.addHeader(name, value);
-		this.headers.put(name, value);
+		this.headers.put(name, (this.headers.containsKey(name) ? this.headers.get(name) + ", " : "") + value);
 	}
 	
 	public Map<String, String> getHeaders() {
