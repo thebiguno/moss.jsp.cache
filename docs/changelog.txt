@@ -1,5 +1,6 @@
 1.2.0.1 - April 28 2009
--Added logic to respect Cache-Control=no-cache on the response 
+-Added logic to respect Cache-Control=no-cache on the response
+-Fixed bug in SplitStreamResponse where addHeader would overwrite existing headers instead of appending 
 
 1.2.0.0 - September 6 2009
 -Renamed packages to ca.digitalcave
