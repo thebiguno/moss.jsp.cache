@@ -38,12 +38,13 @@ import ca.digitalcave.moss.jsp.cache.persistence.CachedResponse;
  */
 public class CacheFilter implements Filter {
 	
+	private FilterConfig filterConfig;
 	private Config config;
+	private long lastConfigLoad = 0;
 	private final Logger logger = Logger.getLogger(CacheDelegate.class.getName());
 	
 	public void init(FilterConfig filterConfig) throws ServletException {
-		config = ConfigFactory.loadConfig(filterConfig);
-		LogUtil.setLogLevel(config.getLogLevel());
+		this.filterConfig = filterConfig;
 	}
 	
 	public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
@@ -52,6 +53,13 @@ public class CacheFilter implements Filter {
 			chain.doFilter(req, res);
 			return;
 		}
+
+		if (config == null || lastConfigLoad + 60000 < System.currentTimeMillis()){
+			config = ConfigFactory.loadConfig(filterConfig);
+			lastConfigLoad = System.currentTimeMillis();
+			LogUtil.setLogLevel(config.getLogLevel());
+		}
+
 		
 		HttpServletRequest request = (HttpServletRequest) req;
 		HttpServletResponse response = (HttpServletResponse) res;

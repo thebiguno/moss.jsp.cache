@@ -1,3 +1,6 @@
+1.2.0.2 - February 1 2012
+-Fixed potential NPE if config file not found
+
 1.2.0.1 - April 28 2009
 -Added logic to respect Cache-Control=no-cache on the response
 -Fixed bug in SplitStreamResponse where addHeader would overwrite existing headers instead of appending 
