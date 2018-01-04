@@ -56,8 +56,10 @@ public class CacheFilter implements Filter {
 
 		if (config == null || lastConfigLoad + 60000 < System.currentTimeMillis()){
 			config = ConfigFactory.loadConfig(filterConfig);
-			lastConfigLoad = System.currentTimeMillis();
-			LogUtil.setLogLevel(config.getLogLevel());
+			if (config != null){
+				lastConfigLoad = System.currentTimeMillis();
+				LogUtil.setLogLevel(config.getLogLevel());
+			}
 		}
 
 		
@@ -66,7 +68,7 @@ public class CacheFilter implements Filter {
 		String url = request.getRequestURL().toString();
 		
 		//If this resource is not supposed to be cached, just pass it down the filter chain.
-		if (!config.isMatched(url)){
+		if (config == null || !config.isMatched(url)){
 			logger.finer("Could not find a match for '" + url + "' in any persistence backing; bypassing cache.");
 			chain.doFilter(req, res);
 			return;
